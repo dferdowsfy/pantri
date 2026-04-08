@@ -1,0 +1,5 @@
+{
+  "name": "Pantri",
+  "description": "A pantry management application to track inventory and shopping needs.",
+  "requestFramePermissions": []
+}
