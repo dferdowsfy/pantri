@@ -14,7 +14,6 @@
 		247F521BC8C611EA64E2D1E053DDF9C3 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 62C8AC60FAE73D0985B5A9D6894939CD /* HomeView.swift */; };
 		3AFE376D13F9D121512B32F5020551DE /* AddItemViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12470F3F494B5D5EF98A8252B1D465C1 /* AddItemViewModel.swift */; };
 		4BC92AAD3F9C685AB7AC9E785745EEE5 /* ReceiptCapture.swift in Sources */ = {isa = PBXBuildFile; fileRef = C9125EF743E6B012027141A7E4CE7ED3 /* ReceiptCapture.swift */; };
-		519E15B882AC85B35F36808FA53D8F16 /* SpeechRecognizer.swift in Sources */ = {isa = PBXBuildFile; fileRef = B11A34F88CE2B8A61262C79F022EC741 /* SpeechRecognizer.swift */; };
 		56BBAB8313AA681417838C3E559394AE /* ReceiptViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8ED6F84193173505D4A4B51EF8926702 /* ReceiptViewModel.swift */; };
 		5777D807E1BBCB8C61387B15D919E32F /* YoureGoodBanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 433741CB5F4924217AAED108DAD9DEBE /* YoureGoodBanner.swift */; };
 		59D66ED48577EED08FC53F5D9C892E6E /* ItemDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A18821561B98B9415EDB9750257E62AC /* ItemDetailView.swift */; };
@@ -24,16 +23,13 @@
 		73116CCC3A87B655AC9CA1A137D4ABD4 /* RemoteConfigProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 564200BB7F6A3316FA86D62289897ED0 /* RemoteConfigProvider.swift */; };
 		771356E3ADC1BD23B44C679C1F1B47BB /* PredictionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25D5102B6140191C9EFE7FC2F18E3AFC /* PredictionService.swift */; };
 		778ED673CBE8D7AB862DC85FFE859AA4 /* OCRProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AB94B065E7739B350CFC3DCD727A008 /* OCRProvider.swift */; };
-		7D84D74131AC5C5E52896DA6022F9689 /* EnvLoader.swift in Sources */ = {isa = PBXBuildFile; fileRef = CBE687AF0D29A14F264D1A694D86872F /* EnvLoader.swift */; };
 		7FA1D68AB29E5486F3853512D915C843 /* NeedSoonCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9144E1C1E09E21FFC971D85992F53B3 /* NeedSoonCard.swift */; };
 		80E53CFEB11FD381C92F059CFDBF40DF /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7B4507537379600FC1F441201A5275FA /* ChatViewModel.swift */; };
 		81EE0A7B8CDD81F766154C6EE5DF062F /* NotificationService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8F3085848D95402BFC6038EE1DFB724 /* NotificationService.swift */; };
 		872684F02CDDD2B2634AC061CEE2DE29 /* HomeScreenServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3B4FF669B28F045C4D846F884CFB4C8 /* HomeScreenServiceTests.swift */; };
 		8B689E790B4829CA08434E14233F06FC /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AF1B5A6A603EFD3915C99ED501EEDEA8 /* ChatView.swift */; };
-		8F68A21B0C8AA2F529EC896F96DA9227 /* InventoryListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65B184A358D5F819E0D539DAF5275913 /* InventoryListView.swift */; };
 		92C1EFBD9601DE2CB19C4219AD508A91 /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7CEA2C6FB59DDF5876140008585361A /* MainTabView.swift */; };
 		93432922F75DA25D5EEF64FDEEFF01F1 /* ReminderRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CB00E91A88E1CAD5EE3BE0229184140 /* ReminderRepository.swift */; };
-		93D0CB2AB8FB4EA54740AD441BFA0C65 /* AnimatedGlobeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AFE3C8C0A332C7FA6721DA7B8AD3F350 /* AnimatedGlobeView.swift */; };
 		96550F7A4B8C7DA02489C5B343E3E944 /* ItemRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = C884670D28F346E30C3321636C5155EF /* ItemRepository.swift */; };
 		9659F05FE86BB7C9FD58003BBB63181A /* ReceiptResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7692AF08C2A59E471A5BB7B5F808A810 /* ReceiptResultsView.swift */; };
 		98F3FEBB036200988FB733AA4BFC11E4 /* PantriApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 090B5186AA7FEA31EC791B1185724577 /* PantriApp.swift */; };
@@ -58,7 +54,6 @@
 		EA4C0827EB42637A65E4FEC15AE2BD27 /* Enums.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AD1E379519380F7A417D1F0537BA94 /* Enums.swift */; };
 		F14A070AA4F06FD1096D41FF1E4B3B57 /* HouseholdProfile.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7106E5AEEFDCE1F2A255643B7671AF49 /* HouseholdProfile.swift */; };
 		F21C203BA554C4910BCA072992BC93FF /* AddItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 32941B5F27565FB232EE830771E65CCC /* AddItemView.swift */; };
-		F24F03EC64934F228D82683EA9E6C9F5 /* DesignTokens.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B2EF0E4C47A7D69EF2EF9DD93A64417 /* DesignTokens.swift */; };
 		FA44B83EBA7F6558B724C37EF523B73E /* PurchaseEvent.swift in Sources */ = {isa = PBXBuildFile; fileRef = C574E116DF6BF65D8C18A69142C87155 /* PurchaseEvent.swift */; };
 		FAFA9FA737C23A83330968AC0B290E8B /* NotificationCopy.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D16F1ED46D6AA45B1CB2373A0F9D7AA /* NotificationCopy.swift */; };
 /* End PBXBuildFile section */
@@ -75,7 +70,6 @@
 
 /* Begin PBXFileReference section */
 		090B5186AA7FEA31EC791B1185724577 /* PantriApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PantriApp.swift; sourceTree = "<group>"; };
-		0B2EF0E4C47A7D69EF2EF9DD93A64417 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		0CB00E91A88E1CAD5EE3BE0229184140 /* ReminderRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderRepository.swift; sourceTree = "<group>"; };
 		1000F503B70E6B92E13A75D377292AB2 /* HomeScreenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreenService.swift; sourceTree = "<group>"; };
 		12470F3F494B5D5EF98A8252B1D465C1 /* AddItemViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddItemViewModel.swift; sourceTree = "<group>"; };
@@ -91,7 +85,6 @@
 		5FD0E0ACE0C1931515B0E2B1AB7D7B70 /* ReceiptCaptureView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptCaptureView.swift; sourceTree = "<group>"; };
 		602CFD8E109BB32BC8BD5FC5BCDEE5D8 /* ReminderEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderEvent.swift; sourceTree = "<group>"; };
 		62C8AC60FAE73D0985B5A9D6894939CD /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
-		65B184A358D5F819E0D539DAF5275913 /* InventoryListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InventoryListView.swift; sourceTree = "<group>"; };
 		6AB138D24F3AB8A8795BB301F0F579AB /* ReceiptProcessingService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptProcessingService.swift; sourceTree = "<group>"; };
 		6CBA6C1822EC393CDC9E9AE657B47227 /* ConsumptionProfile.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsumptionProfile.swift; sourceTree = "<group>"; };
 		70EC37B9AA75921B4ED3AF9673120E57 /* AuthProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthProvider.swift; sourceTree = "<group>"; };
@@ -113,12 +106,9 @@
 		AA15BD88DE46B522539C1CCD45CD1446 /* DefaultConsumptionLoaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DefaultConsumptionLoaderTests.swift; sourceTree = "<group>"; };
 		AE48F3A8A19BA2335DADA43D455525A0 /* ExtractedReceiptItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExtractedReceiptItem.swift; sourceTree = "<group>"; };
 		AF1B5A6A603EFD3915C99ED501EEDEA8 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		AFE3C8C0A332C7FA6721DA7B8AD3F350 /* AnimatedGlobeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AnimatedGlobeView.swift; sourceTree = "<group>"; };
-		B11A34F88CE2B8A61262C79F022EC741 /* SpeechRecognizer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SpeechRecognizer.swift; sourceTree = "<group>"; };
 		C574E116DF6BF65D8C18A69142C87155 /* PurchaseEvent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PurchaseEvent.swift; sourceTree = "<group>"; };
 		C884670D28F346E30C3321636C5155EF /* ItemRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemRepository.swift; sourceTree = "<group>"; };
 		C9125EF743E6B012027141A7E4CE7ED3 /* ReceiptCapture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReceiptCapture.swift; sourceTree = "<group>"; };
-		CBE687AF0D29A14F264D1A694D86872F /* EnvLoader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvLoader.swift; sourceTree = "<group>"; };
 		D3B4FF669B28F045C4D846F884CFB4C8 /* HomeScreenServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeScreenServiceTests.swift; sourceTree = "<group>"; };
 		D5D50128C9F6CAFDD7593149908C5F52 /* ItemStateSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ItemStateSnapshot.swift; sourceTree = "<group>"; };
 		D70E1A7008B09B418E78B30E39E64155 /* HomeViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeViewModel.swift; sourceTree = "<group>"; };
@@ -211,7 +201,6 @@
 			isa = PBXGroup;
 			children = (
 				62C8AC60FAE73D0985B5A9D6894939CD /* HomeView.swift */,
-				65B184A358D5F819E0D539DAF5275913 /* InventoryListView.swift */,
 				E9144E1C1E09E21FFC971D85992F53B3 /* NeedSoonCard.swift */,
 				79F35D5707BAEA5214C015AC2023C1AC /* ThisWeekRow.swift */,
 				433741CB5F4924217AAED108DAD9DEBE /* YoureGoodBanner.swift */,
@@ -236,7 +225,6 @@
 		B39CB3735EA9026999650F5428E000ED /* Chat */ = {
 			isa = PBXGroup;
 			children = (
-				AFE3C8C0A332C7FA6721DA7B8AD3F350 /* AnimatedGlobeView.swift */,
 				AF1B5A6A603EFD3915C99ED501EEDEA8 /* ChatView.swift */,
 			);
 			path = Chat;
@@ -288,7 +276,6 @@
 				F8F3085848D95402BFC6038EE1DFB724 /* NotificationService.swift */,
 				25D5102B6140191C9EFE7FC2F18E3AFC /* PredictionService.swift */,
 				6AB138D24F3AB8A8795BB301F0F579AB /* ReceiptProcessingService.swift */,
-				B11A34F88CE2B8A61262C79F022EC741 /* SpeechRecognizer.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -325,8 +312,6 @@
 			isa = PBXGroup;
 			children = (
 				81DE3856421E39A3DEB3B0A8A099706C /* DateHelpers.swift */,
-				0B2EF0E4C47A7D69EF2EF9DD93A64417 /* DesignTokens.swift */,
-				CBE687AF0D29A14F264D1A694D86872F /* EnvLoader.swift */,
 				7D16F1ED46D6AA45B1CB2373A0F9D7AA /* NotificationCopy.swift */,
 			);
 			path = Utilities;
@@ -439,7 +424,6 @@
 			files = (
 				F21C203BA554C4910BCA072992BC93FF /* AddItemView.swift in Sources */,
 				3AFE376D13F9D121512B32F5020551DE /* AddItemViewModel.swift in Sources */,
-				93D0CB2AB8FB4EA54740AD441BFA0C65 /* AnimatedGlobeView.swift in Sources */,
 				C9428C6456A4E81C9A98C2B09C77B00A /* AppState.swift in Sources */,
 				B045CA2B63B833A05AEEFF1DB40C5D4E /* AuthProvider.swift in Sources */,
 				A2068750CC6CBBA04BD93ECD5DF5B7E6 /* ChatAssistantService.swift in Sources */,
@@ -448,15 +432,12 @@
 				E54EEF28F2FCD1673F6E6F7F6BD430B2 /* ConsumptionProfile.swift in Sources */,
 				B931DD91516AAD5E3880B0448F31D194 /* DateHelpers.swift in Sources */,
 				E2C581EBE6CC494BCBCE4078AF6A47AB /* DefaultConsumptionLoader.swift in Sources */,
-				F24F03EC64934F228D82683EA9E6C9F5 /* DesignTokens.swift in Sources */,
 				EA4C0827EB42637A65E4FEC15AE2BD27 /* Enums.swift in Sources */,
-				7D84D74131AC5C5E52896DA6022F9689 /* EnvLoader.swift in Sources */,
 				BA9FDF37639EAB00E2C64FFCBA63E34A /* ExtractedReceiptItem.swift in Sources */,
 				BCE2064835D4CB8E987E637C15564A68 /* HomeScreenService.swift in Sources */,
 				247F521BC8C611EA64E2D1E053DDF9C3 /* HomeView.swift in Sources */,
 				0D4C382DF6D86425BB9212ACF5246DFF /* HomeViewModel.swift in Sources */,
 				F14A070AA4F06FD1096D41FF1E4B3B57 /* HouseholdProfile.swift in Sources */,
-				8F68A21B0C8AA2F529EC896F96DA9227 /* InventoryListView.swift in Sources */,
 				C26C048A705FE9DD19FF7FB99276A675 /* ItemActionButtons.swift in Sources */,
 				59D66ED48577EED08FC53F5D9C892E6E /* ItemDetailView.swift in Sources */,
 				B2533B982D96D4571C0F4DA16EDF173E /* ItemDetailViewModel.swift in Sources */,
@@ -480,7 +461,6 @@
 				C32D53A6CD86EEE8583AC7C3F7094802 /* ReminderEvent.swift in Sources */,
 				93432922F75DA25D5EEF64FDEEFF01F1 /* ReminderRepository.swift in Sources */,
 				73116CCC3A87B655AC9CA1A137D4ABD4 /* RemoteConfigProvider.swift in Sources */,
-				519E15B882AC85B35F36808FA53D8F16 /* SpeechRecognizer.swift in Sources */,
 				61F70A78EBC2715C1FEC5B997B9B64C3 /* SyncProvider.swift in Sources */,
 				5A5BE0FEA852D3B00C4BF6BEDEEE0D29 /* ThisWeekRow.swift in Sources */,
 				DACF7552587A7E08B7D8A1C09F9F8746 /* TrackedItem.swift in Sources */,
@@ -516,15 +496,12 @@
 				CODE_SIGN_ENTITLEMENTS = Pantri/Pantri.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LFSAKXR3UD;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pantri uses the microphone to let you record purchases and ask questions using your voice.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Pantri uses speech recognition to transcribe your voice so you can update your pantry hands-free.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pantri.app;
-				PRODUCT_NAME = Pantri;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Release;
@@ -567,15 +544,12 @@
 				CODE_SIGN_ENTITLEMENTS = Pantri/Pantri.entitlements;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = LFSAKXR3UD;
-				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Pantri uses the microphone to let you record purchases and ask questions using your voice.";
-				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Pantri uses speech recognition to transcribe your voice so you can update your pantry hands-free.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
 				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = UIInterfaceOrientationPortrait;
 				MARKETING_VERSION = 1.0.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.pantri.app;
-				PRODUCT_NAME = Pantri;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 			};
 			name = Debug;

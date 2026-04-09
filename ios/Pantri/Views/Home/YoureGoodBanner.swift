@@ -8,39 +8,28 @@ struct YoureGoodBanner: View {
             HStack(spacing: 8) {
                 ZStack {
                     Circle()
-                        .fill(.green)
-                        .frame(width: 24, height: 24)
+                        .fill(Color.pantriGreen)
+                        .frame(width: 26, height: 26)
                     Image(systemName: "checkmark")
-                        .font(.caption2)
-                        .fontWeight(.bold)
+                        .font(.caption2.weight(.bold))
                         .foregroundStyle(.white)
                 }
-
-                Text("You're good")
-                    .fontWeight(.semibold)
-                    .foregroundStyle(Color(.systemGreen).opacity(0.9))
+                Text("You're well-stocked")
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.pantriGreenDark)
             }
 
-            Text("Everything else in your pantry is well-stocked. \(itemCount) item\(itemCount == 1 ? "" : "s") looking fine.")
+            Text("\(itemCount) item\(itemCount == 1 ? "" : "s") in good shape — no action needed.")
                 .font(.subheadline)
-                .foregroundStyle(Color(.systemGreen).opacity(0.8))
-
-            HStack(spacing: 4) {
-                Text("Check full report")
-                    .fontWeight(.semibold)
-                    .font(.subheadline)
-                Image(systemName: "arrow.right")
-                    .font(.caption)
-            }
-            .foregroundStyle(Color(.systemGreen).opacity(0.9))
+                .foregroundStyle(Color.pantriGreen)
         }
-        .padding()
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.green.opacity(0.12))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .background(Color.pantriGreenLight)
+        .clipShape(RoundedRectangle(cornerRadius: 18))
         .overlay(
-            RoundedRectangle(cornerRadius: 16)
-                .stroke(Color.green.opacity(0.2), lineWidth: 1)
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(Color.pantriGreen.opacity(0.25), lineWidth: 1)
         )
     }
 }

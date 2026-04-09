@@ -4,24 +4,35 @@ struct ThisWeekRow: View {
     let item: ItemSummary
 
     var body: some View {
-        HStack {
+        HStack(spacing: 12) {
             ZStack {
-                Circle()
-                    .fill(Color.blue.opacity(0.1))
-                    .frame(width: 32, height: 32)
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.pantriGreenLight)
+                    .frame(width: 38, height: 38)
                 Text(item.emoji)
-                    .font(.caption)
+                    .font(.body)
             }
 
-            Text(item.name)
-                .fontWeight(.medium)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(item.name)
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.pantriText)
+                Text(item.subtitle)
+                    .font(.caption)
+                    .foregroundStyle(Color.pantriText.opacity(0.5))
+            }
 
             Spacer()
 
             Text(item.subtitle)
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+                .font(.caption.weight(.medium))
+                .foregroundStyle(Color.pantriGreen)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 4)
+                .background(Color.pantriGreenLight)
+                .clipShape(Capsule())
         }
-        .padding(.vertical, 8)
+        .padding(.vertical, 10)
+        .padding(.horizontal, 14)
     }
 }
