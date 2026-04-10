@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
+import { GoogleGenAI } from '@google/genai';
 
 dotenv.config({ path: path.resolve(process.cwd(), '.env') });
 
@@ -131,6 +132,122 @@ app.post('/api/inventory/add', (req, res) => {
   };
   inventory.push(newItem);
   res.json({ success: true, item: computeStatus(newItem) });
+});
+
+// ─── Grocery Item Parser (Gemini) ────────────────────────────────────────────
+
+interface ParsedGroceryItem {
+  name: string;
+  qty: number | null;
+  unit: string | null;
+}
+
+interface ParsedResult {
+  items: ParsedGroceryItem[];
+  intent: 'add' | 'purchase' | 'query' | 'other';
+}
+
+const PARSE_SYSTEM_INSTRUCTION = `You are a grocery item extractor and intent classifier.
+
+Your job is to extract ONLY grocery/household items from a voice transcript and classify the intent.
+
+RULES:
+1. IGNORE action commands: "make a list", "add to my cart", "I need", "we need", "let me", "can you", "please", "help me"
+2. KEEP multi-word items together: "paper towels" → one item, "peanut butter" → one item, "ice cream" → one item
+3. SPLIT items separated by commas or "and"
+4. For quantities like "2 gallons of milk" → {name: "milk", qty: 2, unit: "gallon"}; "a dozen eggs" → {name: "eggs", qty: 12, unit: null}
+5. IGNORE negations: "we have eggs but need milk" → extract only "milk"; "don't get bread" → skip bread
+6. If the transcript contains no grocery items (e.g., "make a shopping list"), return empty items array
+7. Intent classification:
+   - "add": user wants to add/track/get items
+   - "purchase": user says they bought/purchased/picked up items
+   - "query": user is asking a question about their pantry or list
+   - "other": anything else
+
+Return ONLY valid JSON matching this exact schema — no markdown, no explanation:
+{"intent": "add"|"purchase"|"query"|"other", "items": [{"name": string, "qty": number|null, "unit": string|null}]}
+
+EXAMPLES:
+"I need steak salmon chicken diapers make a list" → {"intent":"add","items":[{"name":"steak","qty":null,"unit":null},{"name":"salmon","qty":null,"unit":null},{"name":"chicken","qty":null,"unit":null},{"name":"diapers","qty":null,"unit":null}]}
+"apples, bananas and milk" → {"intent":"add","items":[{"name":"apples","qty":null,"unit":null},{"name":"bananas","qty":null,"unit":null},{"name":"milk","qty":null,"unit":null}]}
+"get 2 gallons of milk and paper towels" → {"intent":"add","items":[{"name":"milk","qty":2,"unit":"gallon"},{"name":"paper towels","qty":null,"unit":null}]}
+"we have eggs but need bread" → {"intent":"add","items":[{"name":"bread","qty":null,"unit":null}]}
+"I just bought peanut butter and jelly" → {"intent":"purchase","items":[{"name":"peanut butter","qty":null,"unit":null},{"name":"jelly","qty":null,"unit":null}]}
+"what do I need to buy?" → {"intent":"query","items":[]}
+"make a shopping list" → {"intent":"query","items":[]}`;
+
+// POST /api/parse-items — parse a voice transcript into structured grocery items
+app.post('/api/parse-items', async (req, res) => {
+  const { transcript } = req.body;
+  if (!transcript) return res.status(400).json({ error: 'transcript is required' });
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) return res.status(500).json({ error: 'GEMINI_API_KEY not configured' });
+
+  try {
+    const genai = new GoogleGenAI({ apiKey });
+    const result = await genai.models.generateContent({
+      model: 'gemini-2.0-flash',
+      contents: [{ role: 'user', parts: [{ text: transcript }] }],
+      config: {
+        systemInstruction: PARSE_SYSTEM_INSTRUCTION,
+        responseMimeType: 'application/json',
+        temperature: 0,
+      },
+    });
+
+    const raw = result.text ?? '{"intent":"other","items":[]}';
+    let parsed: ParsedResult;
+    try {
+      parsed = JSON.parse(raw) as ParsedResult;
+    } catch {
+      return res.status(500).json({ error: 'LLM returned invalid JSON', raw });
+    }
+
+    // Execute side-effects based on intent
+    const addedItems: ReturnType<typeof computeStatus>[] = [];
+    const purchasedItems: ReturnType<typeof computeStatus>[] = [];
+
+    if (parsed.intent === 'add') {
+      for (const item of parsed.items) {
+        if (!item.name) continue;
+        const existing = findItemFuzzy(item.name);
+        if (!existing) {
+          const newItem: InventoryItem = {
+            id: String(Date.now() + Math.random()),
+            name: item.name.charAt(0).toUpperCase() + item.name.slice(1),
+            category: 'other',
+            emoji: '📦',
+            baselineDays: 7,
+            isPerishable: true,
+            isActive: true,
+            lastPurchased: new Date(),
+          };
+          inventory.push(newItem);
+          addedItems.push(computeStatus(newItem));
+        }
+      }
+    } else if (parsed.intent === 'purchase') {
+      for (const item of parsed.items) {
+        if (!item.name) continue;
+        const existing = findItemFuzzy(item.name);
+        if (existing) {
+          existing.lastPurchased = new Date();
+          purchasedItems.push(computeStatus(existing));
+        }
+      }
+    }
+
+    res.json({
+      intent: parsed.intent,
+      items: parsed.items,
+      addedToInventory: addedItems,
+      markedPurchased: purchasedItems,
+    });
+  } catch (err) {
+    console.error('parse-items error:', err);
+    res.status(500).json({ error: 'Failed to parse items from transcript' });
+  }
 });
 
 // ─── Chat with AI ─────────────────────────────────────────────────────────────

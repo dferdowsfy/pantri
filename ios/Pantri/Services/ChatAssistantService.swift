@@ -36,6 +36,14 @@ struct ChatResponse {
     let actions: [ChatMessage.ChatAction]
 }
 
+// MARK: - Parsed Grocery Item
+
+struct ParsedGroceryItem {
+    let name: String
+    let qty: Double?
+    let unit: String?
+}
+
 // MARK: - Protocol
 
 protocol ChatAssistantServiceProtocol {
@@ -108,133 +116,40 @@ final class ChatAssistantService: ChatAssistantServiceProtocol {
                 }
             }
         } else if isAdd {
-            // Extract item names using simple word matching against known grocery terms
-            let groceryMap: [String: (ItemCategory, Bool)] = [
-                "milk": (.dairy, true), "eggs": (.dairy, true), "yogurt": (.dairy, true),
-                "cheese": (.dairy, true), "butter": (.dairy, true), "cream": (.dairy, true),
-                "bread": (.bakery, true), "bagels": (.bakery, true), "tortillas": (.bakery, false),
-                "apples": (.produce, true), "bananas": (.produce, true), "oranges": (.produce, true),
-                "tomatoes": (.produce, true), "onions": (.produce, false), "potatoes": (.produce, false),
-                "lettuce": (.produce, true), "spinach": (.produce, true), "avocados": (.produce, true),
-                "broccoli": (.produce, true), "cauliflower": (.produce, true), "carrots": (.produce, true),
-                "peppers": (.produce, true), "mushrooms": (.produce, true), "garlic": (.produce, false),
-                "celery": (.produce, true), "cucumber": (.produce, true), "corn": (.produce, true),
-                "chicken": (.meatSeafood, true), "beef": (.meatSeafood, true), "fish": (.meatSeafood, true),
-                "salmon": (.meatSeafood, true), "shrimp": (.meatSeafood, true), "steak": (.meatSeafood, true),
-                "turkey": (.meatSeafood, true), "pork": (.meatSeafood, true), "bacon": (.meatSeafood, true),
-                "sausage": (.meatSeafood, true),
-                "rice": (.pantry, false), "pasta": (.pantry, false), "cereal": (.pantry, false),
-                "flour": (.pantry, false), "sugar": (.pantry, false), "oil": (.pantry, false),
-                "oats": (.pantry, false), "beans": (.pantry, false), "nuts": (.pantry, false),
-                "honey": (.pantry, false), "peanut butter": (.pantry, false), "salt": (.pantry, false),
-                "coffee": (.beverages, false), "tea": (.beverages, false), "juice": (.beverages, true),
-                "water": (.beverages, false), "soda": (.beverages, false),
-                "ice cream": (.frozen, true), "frozen pizza": (.frozen, false),
-                "paper towels": (.household, false), "soap": (.household, false),
-                "detergent": (.household, false), "trash bags": (.household, false),
-                "diapers": (.household, false), "tissues": (.household, false),
-                "toilet paper": (.household, false), "wipes": (.household, false),
-            ]
+            let parsedItems = await parseGroceryItems(from: text)
             var addedNames: [String] = []
-            
-            for (word, (category, isPerishable)) in groceryMap {
-                if lower.contains(word) {
-                    let itemRepo = SwiftDataItemRepository()
-                    if let allItems = try? itemRepo.fetchActive(context: context) {
-                        let exists = allItems.contains { $0.canonicalName == word || $0.name.lowercased() == word }
-                        if !exists {
-                            let newItem = TrackedItem(name: word.capitalized, category: category)
-                            context.insert(newItem)
-                            let baselineDays: Double = isPerishable ? 7 : 21
-                            let profile = ConsumptionProfile(
-                                baselineDays: baselineDays,
-                                currentEstimatedDays: baselineDays,
-                                confidenceScore: 0.2,
-                                isPerishable: isPerishable,
-                                reminderLeadDays: isPerishable ? 2 : 4
-                            )
-                            context.insert(profile)
-                            newItem.consumptionProfile = profile
-                            addedNames.append(word.capitalized)
-                        }
+            let itemRepo = SwiftDataItemRepository()
+
+            for item in parsedItems {
+                let nameLower = item.name.lowercased()
+                if let allItems = try? itemRepo.fetchActive(context: context) {
+                    let exists = allItems.contains {
+                        $0.canonicalName == nameLower || $0.name.lowercased() == nameLower
+                    }
+                    if !exists {
+                        let newItem = TrackedItem(name: item.name.capitalized, category: .other)
+                        context.insert(newItem)
+                        let profile = ConsumptionProfile(
+                            baselineDays: 14,
+                            currentEstimatedDays: 14,
+                            confidenceScore: 0.2,
+                            isPerishable: false,
+                            reminderLeadDays: 3
+                        )
+                        context.insert(profile)
+                        newItem.consumptionProfile = profile
+                        addedNames.append(item.name.capitalized)
                     }
                 }
             }
+
             if !addedNames.isEmpty {
                 let joined = addedNames.joined(separator: ", ")
-                systemPrompt += "\n\n[SYSTEM: The following items have been actively added to the user's pantry system: \(joined). Acknowledge that you have added them.]"
+                systemPrompt += "\n\n[SYSTEM: The following items have been added to the user's pantry: \(joined). Acknowledge cheerfully.]"
                 detectedActions.append(.goToHome)
                 try? context.save()
                 DispatchQueue.main.async {
                     NotificationCenter.default.post(name: .pantriInventoryChanged, object: nil)
-                }
-            } else {
-                // Fallback: extract words after add/need/track keywords for items not in groceryMap
-                let patterns = ["add ", "need ", "track ", "put ", "we are out of ", "i need ", "shopping list ", "make a list ", "list "]
-                for pattern in patterns {
-                    if let range = lower.range(of: pattern) {
-                        var after = String(lower[range.upperBound...])
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                            .replacingOccurrences(of: " to my pantry", with: "")
-                            .replacingOccurrences(of: " to pantry", with: "")
-                            .replacingOccurrences(of: " to the list", with: "")
-                            .replacingOccurrences(of: " to my list", with: "")
-                            .replacingOccurrences(of: " please", with: "")
-                            .replacingOccurrences(of: "i need ", with: "")
-                            .replacingOccurrences(of: "i also need ", with: "")
-                            .trimmingCharacters(in: .punctuationCharacters)
-                            .trimmingCharacters(in: .whitespacesAndNewlines)
-                        if !after.isEmpty && after.count < 80 {
-                            // Split by "and", comma, or individual words for multi-item adds
-                            let normalized = after
-                                .replacingOccurrences(of: " and ", with: ",")
-                                .replacingOccurrences(of: "  ", with: " ")
-                            // If no commas, treat each word as an item
-                            let rawItems: [String]
-                            if normalized.contains(",") {
-                                rawItems = normalized
-                                    .split(separator: ",")
-                                    .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-                                    .filter { !$0.isEmpty }
-                            } else {
-                                rawItems = normalized
-                                    .split(separator: " ")
-                                    .map { String($0).trimmingCharacters(in: .whitespacesAndNewlines) }
-                                    .filter { !$0.isEmpty && $0.count > 1 }
-                            }
-                            let itemRepo = SwiftDataItemRepository()
-                            for rawName in rawItems {
-                                let cleanName = rawName.capitalized
-                                if let allItems = try? itemRepo.fetchActive(context: context) {
-                                    let exists = allItems.contains { $0.canonicalName == rawName.lowercased() || $0.name.lowercased() == rawName.lowercased() }
-                                    if !exists {
-                                        let newItem = TrackedItem(name: cleanName, category: .other)
-                                        context.insert(newItem)
-                                        let profile = ConsumptionProfile(
-                                            baselineDays: 14,
-                                            currentEstimatedDays: 14,
-                                            confidenceScore: 0.2,
-                                            isPerishable: false,
-                                            reminderLeadDays: 3
-                                        )
-                                        context.insert(profile)
-                                        newItem.consumptionProfile = profile
-                                        addedNames.append(cleanName)
-                                    }
-                                }
-                            }
-                            if !addedNames.isEmpty {
-                                let joined = addedNames.joined(separator: ", ")
-                                systemPrompt += "\n\n[SYSTEM: The following items have been actively added to the user's pantry system: \(joined). Acknowledge that you have added them.]"
-                                detectedActions.append(.goToHome)
-                                try? context.save()
-                                DispatchQueue.main.async {
-                                    NotificationCenter.default.post(name: .pantriInventoryChanged, object: nil)
-                                }
-                            }
-                            break
-                        }
-                    }
                 }
             }
         }
@@ -320,6 +235,77 @@ final class ChatAssistantService: ChatAssistantServiceProtocol {
 
     func clearConversation() {
         conversationHistory.removeAll()
+    }
+
+    // MARK: - LLM-based grocery item parser
+
+    private static let parseSystemPrompt = """
+    You are a grocery item extractor. Extract ONLY grocery/household items from voice input.
+
+    RULES:
+    1. IGNORE action phrases: "make a list", "add to my cart", "I need", "we need", "please", "help me"
+    2. KEEP multi-word items together: "paper towels" → one item, "peanut butter" → one item
+    3. SPLIT items separated by commas or "and"
+    4. For quantities: "2 gallons of milk" → {name:"milk", qty:2, unit:"gallon"}
+    5. IGNORE negations: "we have eggs but need milk" → extract only "milk"
+    6. If no grocery items are present, return empty array
+
+    Return ONLY valid JSON — no markdown, no explanation:
+    {"items": [{"name": string, "qty": number|null, "unit": string|null}]}
+
+    EXAMPLES:
+    "I need steak salmon chicken diapers make a list" → {"items":[{"name":"steak","qty":null,"unit":null},{"name":"salmon","qty":null,"unit":null},{"name":"chicken","qty":null,"unit":null},{"name":"diapers","qty":null,"unit":null}]}
+    "apples, bananas and milk" → {"items":[{"name":"apples","qty":null,"unit":null},{"name":"bananas","qty":null,"unit":null},{"name":"milk","qty":null,"unit":null}]}
+    "2 gallons of milk and paper towels" → {"items":[{"name":"milk","qty":2,"unit":"gallon"},{"name":"paper towels","qty":null,"unit":null}]}
+    "we have eggs but need bread" → {"items":[{"name":"bread","qty":null,"unit":null}]}
+    "make a shopping list" → {"items":[]}
+    """
+
+    private func parseGroceryItems(from text: String) async -> [ParsedGroceryItem] {
+        let body: [String: Any] = [
+            "model": model,
+            "messages": [
+                ["role": "system", "content": Self.parseSystemPrompt],
+                ["role": "user", "content": text]
+            ],
+            "max_tokens": 500,
+            "temperature": 0,
+            "response_format": ["type": "json_object"]
+        ]
+
+        guard let bodyData = try? JSONSerialization.data(withJSONObject: body) else { return [] }
+
+        var request = URLRequest(url: URL(string: endpoint)!)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue("Bearer \(apiKey.trimmingCharacters(in: .whitespaces))", forHTTPHeaderField: "Authorization")
+        request.setValue("https://pantri.app", forHTTPHeaderField: "HTTP-Referer")
+        request.setValue("Pantri", forHTTPHeaderField: "X-OpenRouter-Title")
+        request.httpBody = bodyData
+        request.timeoutInterval = 30
+
+        guard
+            let (data, _) = try? await URLSession.shared.data(for: request),
+            let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+            let choices = json["choices"] as? [[String: Any]],
+            let content = choices.first?["message"] as? [String: Any],
+            let raw = content["content"] as? String,
+            let itemData = raw.data(using: .utf8),
+            let parsed = try? JSONSerialization.jsonObject(with: itemData) as? [String: Any],
+            let items = parsed["items"] as? [[String: Any]]
+        else {
+            print("[ChatAssistantService] parseGroceryItems: failed to parse LLM response")
+            return []
+        }
+
+        return items.compactMap { item in
+            guard let name = item["name"] as? String, !name.isEmpty else { return nil }
+            return ParsedGroceryItem(
+                name: name,
+                qty: item["qty"] as? Double,
+                unit: item["unit"] as? String
+            )
+        }
     }
 
     // MARK: - System prompt
