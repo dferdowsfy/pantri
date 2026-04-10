@@ -5,7 +5,8 @@ import AVFoundation
 // MARK: - Speech Recognizer
 
 /// Wraps Apple's SFSpeechRecognizer for live, on-device voice-to-text.
-/// Publishes a live transcript string as the user speaks.
+/// Automatically restarts when Apple's recognition session times out,
+/// keeping the microphone open until the caller explicitly calls `stopListening()`.
 @Observable
 final class SpeechRecognizer {
 
@@ -22,6 +23,8 @@ final class SpeechRecognizer {
     private var request: SFSpeechAudioBufferRecognitionRequest?
     private var task: SFSpeechRecognitionTask?
     private let audioEngine = AVAudioEngine()
+    private var shouldContinueListening = false
+    private var accumulatedTranscript = ""
 
     // MARK: - Init
 
@@ -34,14 +37,12 @@ final class SpeechRecognizer {
 
     @MainActor
     func requestPermission() async {
-        // Speech permission
         let speechGranted = await withCheckedContinuation { cont in
             SFSpeechRecognizer.requestAuthorization { status in
                 cont.resume(returning: status == .authorized)
             }
         }
 
-        // Mic permission
         let micGranted = await AVAudioApplication.requestRecordPermission()
 
         isAvailable = speechGranted && micGranted && (recognizer?.isAvailable ?? false)
@@ -54,8 +55,26 @@ final class SpeechRecognizer {
 
     func startListening() {
         guard isAvailable, !isListening else { return }
+        shouldContinueListening = true
+        accumulatedTranscript = ""
+        transcript = ""
+        errorMessage = nil
+        tearDownEngine()
+        beginSession()
+    }
 
-        reset()
+    func stopListening() {
+        shouldContinueListening = false
+        tearDownEngine()
+        DispatchQueue.main.async {
+            self.isListening = false
+        }
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+    }
+
+    // MARK: - Session lifecycle
+
+    private func beginSession() {
         setupAudioSession()
 
         request = SFSpeechAudioBufferRecognitionRequest()
@@ -81,32 +100,49 @@ final class SpeechRecognizer {
 
         task = recognizer?.recognitionTask(with: request) { [weak self] result, error in
             guard let self else { return }
+
             if let result {
+                let currentText = result.bestTranscription.formattedString
                 DispatchQueue.main.async {
-                    self.transcript = result.bestTranscription.formattedString
+                    self.transcript = self.accumulatedTranscript.isEmpty
+                        ? currentText
+                        : self.accumulatedTranscript + " " + currentText
+                }
+                if result.isFinal {
+                    self.accumulatedTranscript = self.transcript
+                    self.restartSessionIfNeeded()
+                    return
                 }
             }
+
             if let error {
-                // Ignore cancellation errors (triggered by stopListening)
                 let nsError = error as NSError
                 let isCancelled = nsError.domain == "kAFAssistantErrorDomain" && nsError.code == 216
-                if !isCancelled {
-                    DispatchQueue.main.async {
-                        self.errorMessage = error.localizedDescription
-                    }
-                }
-                self.stopEngine()
+                if isCancelled { return }
+                // Non-cancellation error → persist what we have and try to restart
+                self.accumulatedTranscript = self.transcript
+                self.restartSessionIfNeeded()
             }
         }
 
-        isListening = true
+        DispatchQueue.main.async {
+            self.isListening = true
+        }
     }
 
-    func stopListening() {
-        stopEngine()
+    private func restartSessionIfNeeded() {
+        tearDownEngine()
+        guard shouldContinueListening else {
+            DispatchQueue.main.async { self.isListening = false }
+            return
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) { [weak self] in
+            guard let self, self.shouldContinueListening else { return }
+            self.beginSession()
+        }
     }
 
-    // MARK: - Private helpers
+    // MARK: - Helpers
 
     private func setupAudioSession() {
         let session = AVAudioSession.sharedInstance()
@@ -114,23 +150,12 @@ final class SpeechRecognizer {
         try? session.setActive(true, options: .notifyOthersOnDeactivation)
     }
 
-    private func stopEngine() {
+    private func tearDownEngine() {
         audioEngine.stop()
         audioEngine.inputNode.removeTap(onBus: 0)
         request?.endAudio()
         task?.cancel()
         request = nil
         task = nil
-        DispatchQueue.main.async {
-            self.isListening = false
-        }
-        // Deactivate audio session so other audio (music, etc.) can resume
-        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
-    }
-
-    private func reset() {
-        transcript = ""
-        errorMessage = nil
-        stopEngine()
     }
 }

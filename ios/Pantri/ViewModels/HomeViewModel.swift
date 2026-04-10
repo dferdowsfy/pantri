@@ -26,27 +26,31 @@ final class HomeViewModel {
     }
 
     var headlineText: String {
-        guard let data = homeData else { return "\(greeting)." }
-
-        if data.needSoon.isEmpty && data.thisWeek.isEmpty {
-            return "\(greeting). Pantry looks calm."
-        } else if !data.needSoon.isEmpty {
-            return "\(greeting). A few items to check on."
-        } else {
-            return "\(greeting). Looking mostly good."
-        }
+        "\(greeting)."
     }
 
     var subtitleText: String {
         guard let data = homeData else { return "Loading your inventory..." }
 
-        if data.needSoon.isEmpty {
-            return "Your inventory is managed and predictable today."
+        let urgentCount = data.needSoon.count
+        if urgentCount == 0 {
+            return "Everything looks good."
         } else {
-            let count = data.needSoon.count
-            return "\(count) item\(count == 1 ? "" : "s") may need attention."
+            return "\(urgentCount) item\(urgentCount == 1 ? " needs" : "s need") attention."
         }
     }
+
+    /// Combined list for the merged "What to buy" section, sorted by urgency.
+    /// Excludes items purchased in the last 24 hours.
+    var whatToBuyItems: [ItemSummary] {
+        guard let data = homeData else { return [] }
+        let combined = data.needSoon + data.thisWeek
+        let filtered = combined.filter { !recentlyBoughtIds.contains($0.id) }
+        return filtered.sorted { ($0.daysUntilNeeded ?? 99) < ($1.daysUntilNeeded ?? 99) }
+    }
+
+    /// IDs of items bought in last 24h — refreshed alongside homeData
+    private var recentlyBoughtIds: Set<UUID> = []
 
     @MainActor
     func loadFirstLaunchIfNeeded(context: ModelContext, appState: AppState) {
@@ -67,6 +71,15 @@ final class HomeViewModel {
 
         do {
             homeData = try homeScreenService.deriveHomeScreen(context: context)
+            // Find items bought in the last 24 hours
+            let purchaseRepo = SwiftDataPurchaseRepository()
+            let recentPurchases = try purchaseRepo.fetchRecentPurchases(limit: 50, context: context)
+            let cutoff = Date.now.addingTimeInterval(-24 * 3600)
+            recentlyBoughtIds = Set(
+                recentPurchases
+                    .filter { $0.purchasedAt >= cutoff }
+                    .compactMap { $0.trackedItem?.id }
+            )
         } catch {
             errorMessage = "Could not load predictions: \(error.localizedDescription)"
         }
@@ -81,9 +94,14 @@ final class HomeViewModel {
 
     @MainActor
     func handleBought(itemId: UUID, context: ModelContext) {
-        guard let item = findItem(id: itemId, context: context) else { return }
+        guard let item = findItem(id: itemId, context: context) else {
+            errorMessage = "Item not found"
+            return
+        }
         do {
             try learningService.recordBought(item: item, context: context)
+            let impact = UINotificationFeedbackGenerator()
+            impact.notificationOccurred(.success)
             refresh(context: context)
         } catch {
             errorMessage = "Could not record purchase: \(error.localizedDescription)"
@@ -98,6 +116,22 @@ final class HomeViewModel {
             refresh(context: context)
         } catch {
             errorMessage = "Could not record feedback: \(error.localizedDescription)"
+        }
+    }
+
+    @MainActor
+    func handleSnooze(itemId: UUID, context: ModelContext) {
+        guard let item = findItem(id: itemId, context: context) else {
+            errorMessage = "Item not found"
+            return
+        }
+        do {
+            try learningService.recordRemindLater(item: item, snoozeHours: 72, context: context)
+            let impact = UIImpactFeedbackGenerator(style: .medium)
+            impact.impactOccurred()
+            refresh(context: context)
+        } catch {
+            errorMessage = "Could not snooze item: \(error.localizedDescription)"
         }
     }
 

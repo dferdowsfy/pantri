@@ -105,7 +105,17 @@ struct PredictionService: PredictionServiceProtocol {
     func predictAll(context: ModelContext) throws -> [ItemPrediction] {
         let itemRepo = SwiftDataItemRepository()
         let items = try itemRepo.fetchActive(context: context)
-        return try items.map { try predict(for: $0, context: context) }
+        let now = Date.now
+        // Filter out items that are currently snoozed
+        let unsnoozed = items.filter { item in
+            guard let reminders = item.reminderEvents else { return true }
+            let latestSnooze = reminders
+                .filter { $0.action == .remindLater && $0.snoozedUntil != nil }
+                .max(by: { ($0.snoozedUntil ?? .distantPast) < ($1.snoozedUntil ?? .distantPast) })
+            guard let snoozedUntil = latestSnooze?.snoozedUntil else { return true }
+            return now >= snoozedUntil
+        }
+        return try unsnoozed.map { try predict(for: $0, context: context) }
     }
 
     // MARK: - Private Helpers

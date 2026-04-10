@@ -27,19 +27,44 @@ struct AddItemView: View {
                             }
                         }
 
-                        // Category picker
+                        // Category grid
                         fieldCard {
-                            VStack(alignment: .leading, spacing: 8) {
+                            VStack(alignment: .leading, spacing: 12) {
                                 Label("Category", systemImage: "square.grid.2x2.fill")
                                     .font(.caption.weight(.semibold))
                                     .foregroundStyle(Color.pantriGreen)
-                                Picker("", selection: $viewModel.selectedCategory) {
+
+                                LazyVGrid(columns: [
+                                    GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())
+                                ], spacing: 12) {
                                     ForEach(ItemCategory.allCases) { cat in
-                                        Text("\(cat.emoji) \(cat.displayName)").tag(cat)
+                                        Button {
+                                            withAnimation(.spring(duration: 0.25)) {
+                                                viewModel.selectedCategory = cat
+                                                viewModel.autoSetPerishable(for: cat)
+                                            }
+                                        } label: {
+                                            VStack(spacing: 8) {
+                                                Text(cat.emoji)
+                                                    .font(.system(size: 36))
+                                                    .frame(width: 64, height: 64)
+                                                    .background(
+                                                        RoundedRectangle(cornerRadius: 16)
+                                                            .fill(viewModel.selectedCategory == cat
+                                                                  ? Color.pantriGreenDark
+                                                                  : Color.pantriGreenLight.opacity(0.5))
+                                                    )
+                                                Text(cat.displayName)
+                                                    .font(.caption2)
+                                                    .foregroundStyle(viewModel.selectedCategory == cat
+                                                                     ? Color.pantriGreenDark
+                                                                     : Color.pantriText.opacity(0.6))
+                                            }
+                                            .scaleEffect(viewModel.selectedCategory == cat ? 1.08 : 1.0)
+                                            .contentShape(Rectangle())
+                                        }
                                     }
                                 }
-                                .pickerStyle(.wheel)
-                                .frame(height: 120)
                             }
                         }
 
@@ -138,8 +163,8 @@ struct AddItemView: View {
             .padding(16)
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(.white.opacity(0.82))
-                    .shadow(color: Color.pantriGreen.opacity(0.07), radius: 8, y: 2)
+                    .fill(Color.pantriSurface)
+                    .shadow(color: Color.black.opacity(0.05), radius: 8, y: 2)
             )
             .padding(.horizontal)
     }

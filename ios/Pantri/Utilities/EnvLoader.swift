@@ -12,7 +12,7 @@ enum EnvLoader {
     }
     
     private static func loadEnvFile() {
-        guard let path = Bundle.main.path(forResource: ".env", ofType: nil) else {
+        guard let path = Bundle.main.path(forResource: "Env", ofType: "txt") else {
             print("[EnvLoader] Warning: .env file not found in bundle.")
             return
         }

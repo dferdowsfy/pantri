@@ -38,11 +38,11 @@ struct ChatView: View {
     @State private var viewModel = ChatViewModel()
     @State private var speech = SpeechRecognizer()
     @StateObject private var keyboard = KeyboardObserver()
+    @State private var showHistory = false
 
     var body: some View {
         ZStack {
-            Color.pantriOrange.ignoresSafeArea()
-            backgroundShapes
+            Color.pantriBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 // ── Nav bar ───────────────────────────────────────────
@@ -51,7 +51,7 @@ struct ChatView: View {
                 // ── Messages ──────────────────────────────────────────
                 ScrollViewReader { proxy in
                     ScrollView {
-                        LazyVStack(spacing: 10) {
+                        LazyVStack(spacing: 12) {
                             if viewModel.messages.isEmpty {
                                 emptyState
                             }
@@ -67,25 +67,40 @@ struct ChatView: View {
                                 TypingIndicator()
                                     .id("loading")
                             }
+                            Color.clear
+                                .frame(height: 1)
+                                .id("bottom")
                         }
                         .padding(.horizontal, 16)
                         .padding(.top, 8)
-                        // Increased bottom padding so content doesn't hide behind input bar
-                        .padding(.bottom, keyboard.isVisible ? 100 : 180)
+                        .padding(.bottom, 12)
                     }
+                    .scrollDismissesKeyboard(.interactively)
                     .opacity(viewModel.isVoiceMode ? 0.0 : 1.0)
                     .allowsHitTesting(!viewModel.isVoiceMode)
                     .onTapGesture {
-                        // Dismiss keyboard when tapping message area
                         UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
                     }
                     .onChange(of: viewModel.messages.count) { _, _ in
-                        withAnimation(.spring(duration: 0.3)) {
-                            if let lastId = viewModel.messages.last?.id {
-                                proxy.scrollTo(lastId, anchor: .bottom)
-                            }
-                        }
+                        scrollToBottom(proxy)
                     }
+                    .onChange(of: viewModel.isLoading) { _, _ in
+                        scrollToBottom(proxy)
+                    }
+                    .onChange(of: keyboard.keyboardHeight) { _, _ in
+                        scrollToBottom(proxy)
+                    }
+                }
+
+                // ── Input bar pinned at bottom ───────────────────────
+                if !viewModel.isVoiceMode {
+                    textInputBar
+                }
+            }
+            .safeAreaInset(edge: .bottom) {
+                // Reserve space for floating tab bar when keyboard is hidden
+                if !keyboard.isVisible && !viewModel.isVoiceMode {
+                    Color.clear.frame(height: 80)
                 }
             }
 
@@ -94,16 +109,18 @@ struct ChatView: View {
                 centeredVoicePanel
                     .transition(.opacity.combined(with: .scale(scale: 0.9)))
             }
-
-            // ── Input bar anchored to keyboard ───────────────────────
-            if !viewModel.isVoiceMode {
-                VStack {
-                    Spacer()
-                    textInputBar
-                        .padding(.bottom, keyboard.isVisible ? keyboard.keyboardHeight - 34 : 108)
+        }
+        .sheet(isPresented: $showHistory) {
+            ChatHistorySheet(
+                sessions: viewModel.savedSessions,
+                onSelect: { session in
+                    viewModel.loadSession(session)
+                    showHistory = false
+                },
+                onDelete: { session in
+                    viewModel.deleteSession(session)
                 }
-                .animation(.spring(duration: 0.3, bounce: 0.15), value: keyboard.keyboardHeight)
-            }
+            )
         }
         .onChange(of: speech.transcript) { _, newValue in
             viewModel.voiceTranscript = newValue
@@ -114,37 +131,35 @@ struct ChatView: View {
 
     private var chatNavBar: some View {
         HStack {
+            // History / hamburger menu
+            Button {
+                viewModel.saveCurrentSession()
+                showHistory = true
+            } label: {
+                Image(systemName: "line.3.horizontal")
+                    .font(.title3.weight(.medium))
+                    .foregroundStyle(Color.pantriText.opacity(0.6))
+                    .frame(width: 36, height: 36)
+            }
+
+            Spacer()
+
             Text("Pantri Assistant")
                 .font(.title3.weight(.bold))
                 .foregroundStyle(Color.pantriText)
 
             Spacer()
 
-            // Voice toggle
+            // Clear / new chat
             Button {
-                withAnimation(.spring(duration: 0.4, bounce: 0.3)) {
-                    handleVoiceToggle()
-                }
-            } label: {
-                HStack(spacing: 4) {
-                    Image(systemName: viewModel.isVoiceMode ? "keyboard" : "mic.fill")
-                        .font(.system(size: 16, weight: .bold))
-                    Text(viewModel.isVoiceMode ? "Text" : "Voice")
-                        .font(.system(size: 14, weight: .bold))
-                }
-                .foregroundStyle(viewModel.isVoiceMode ? Color.pantriGreenDark : Color.pantriGreen)
-                .frame(width: 80, height: 44) // Explicit sizing
-                .contentShape(Rectangle())
-            }
-
-            // Clear
-            Button {
+                viewModel.saveCurrentSession()
                 speech.stopListening()
-                viewModel.clearChat()
+                viewModel.startNewChat()
             } label: {
-                Image(systemName: "trash")
+                Image(systemName: "square.and.pencil")
+                    .font(.body.weight(.medium))
                     .foregroundStyle(Color.pantriText.opacity(0.4))
-                    .padding(8)
+                    .frame(width: 36, height: 36)
             }
             .disabled(viewModel.messages.isEmpty)
         }
@@ -153,62 +168,72 @@ struct ChatView: View {
         .padding(.bottom, 8)
     }
 
-    // MARK: - Background shapes
+    // MARK: - Scroll helper
 
-    private var backgroundShapes: some View {
-        GeometryReader { geo in
-            ZStack {
-                Circle()
-                    .fill(Color.pantriGreen.opacity(0.10))
-                    .frame(width: geo.size.width * 0.6)
-                    .offset(x: geo.size.width * 0.5, y: -40)
-                Circle()
-                    .fill(Color.pantriGreen.opacity(0.06))
-                    .frame(width: geo.size.width * 0.45)
-                    .offset(x: -geo.size.width * 0.2, y: geo.size.height * 0.55)
-            }
-        }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
-    }
-
-    // MARK: - Voice toggle
-
-    private func handleVoiceToggle() {
-        if viewModel.isVoiceMode {
-            speech.stopListening()
-            viewModel.toggleVoiceMode()
-        } else {
-            viewModel.toggleVoiceMode()
-            // Immediate start for better responsiveness
-            speech.startListening()
+    private func scrollToBottom(_ proxy: ScrollViewProxy) {
+        withAnimation(.spring(duration: 0.3)) {
+            proxy.scrollTo("bottom", anchor: .bottom)
         }
     }
 
-    // MARK: - Text input bar (anchors to keyboard like ChatGPT)
+    // MARK: - Voice helpers
+
+    private func enterVoiceMode() {
+        withAnimation(.spring(duration: 0.35)) {
+            if !viewModel.isVoiceMode { viewModel.toggleVoiceMode() }
+        }
+        speech.startListening()
+    }
+
+    private func exitVoiceMode(send: Bool) {
+        let text = viewModel.voiceTranscript
+        speech.stopListening()
+        withAnimation(.spring(duration: 0.35)) {
+            if viewModel.isVoiceMode { viewModel.toggleVoiceMode() }
+        }
+        if send && !text.isEmpty {
+            Task { await viewModel.sendVoiceMessage(text, context: modelContext) }
+        }
+    }
+
+    // MARK: - Text input bar
 
     private var textInputBar: some View {
         HStack(spacing: 10) {
+            // Mic button (left)
+            Button {
+                let impact = UIImpactFeedbackGenerator(style: .medium)
+                impact.impactOccurred()
+                enterVoiceMode()
+            } label: {
+                Image(systemName: "mic.fill")
+                    .font(.system(size: 18, weight: .bold))
+                    .foregroundStyle(Color.pantriGreen)
+                    .frame(width: 40, height: 40)
+                    .contentShape(Circle())
+            }
+
             TextField("Ask about your pantry…", text: $viewModel.inputText, axis: .vertical)
                 .lineLimit(1...6)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 10)
                 .background(
                     RoundedRectangle(cornerRadius: 22)
-                        .fill(.white.opacity(0.9))
-                        .shadow(color: Color.pantriGreen.opacity(0.10), radius: 6, y: 2)
+                        .fill(Color.pantriSurface)
+                        .shadow(color: Color.black.opacity(0.06), radius: 4, y: 1)
                 )
                 .submitLabel(.send)
                 .onSubmit {
                     Task { await viewModel.sendMessage(context: modelContext) }
                 }
 
+            // Send button (right)
             Button {
                 Task { await viewModel.sendMessage(context: modelContext) }
             } label: {
                 Image(systemName: "arrow.up.circle.fill")
                     .font(.system(size: 32, weight: .bold))
-                    .foregroundStyle(viewModel.canSend ? Color.pantriOrangeAccent : Color.pantriGreen.opacity(0.3))
+                    .foregroundStyle(viewModel.canSend ? Color.pantriGreen : Color.pantriGreen.opacity(0.3))
                     .contentShape(Circle())
             }
             .disabled(!viewModel.canSend)
@@ -216,7 +241,7 @@ struct ChatView: View {
         .padding(.horizontal, 14)
         .padding(.vertical, 10)
         .background(
-            Color.pantriOrange.opacity(0.97)
+            Color.pantriBackground.opacity(0.97)
                 .shadow(color: .black.opacity(0.06), radius: 8, y: -2)
         )
     }
@@ -227,47 +252,17 @@ struct ChatView: View {
         VStack(spacing: 40) {
             Spacer()
 
-            ZStack {
-                Button {
-                    let impact = UIImpactFeedbackGenerator(style: .heavy)
-                    impact.impactOccurred()
-                    if speech.isListening {
-                        speech.stopListening()
-                        Task {
-                            try? await Task.sleep(nanoseconds: 100_000_000)
-                            let text = viewModel.voiceTranscript
-                            if !text.isEmpty {
-                                await viewModel.sendVoiceMessage(text, context: modelContext)
-                            }
-                        }
-                    } else {
-                        speech.startListening()
-                    }
-                } label: {
-                    AnimatedGlobeView(isListening: speech.isListening)
-                        .frame(width: 220, height: 220)
-                        .contentShape(Circle())
-                }
-                .buttonStyle(.plain)
+            // Globe — visual-only activity indicator
+            AnimatedGlobeView(isListening: speech.isListening)
+                .frame(width: 200, height: 200)
                 .scaleEffect(speech.isListening ? 1.05 : 1.0)
                 .animation(.spring(duration: 0.3), value: speech.isListening)
 
-                // The static mic icon in front
-                if !speech.isListening {
-                    Image(systemName: "mic.fill")
-                        .font(.system(size: 40, weight: .bold))
-                        .foregroundStyle(.white)
-                        .shadow(color: .black.opacity(0.2), radius: 4)
-                        .allowsHitTesting(false)
-                }
-            }
-
             VStack(spacing: 16) {
-                Text(speech.isListening ? "Listening..." : "Tap to talk")
+                Text(speech.isListening ? "Listening..." : "Starting...")
                     .font(.headline)
                     .foregroundStyle(Color.pantriGreenDark)
 
-                // Transcript text
                 if !viewModel.voiceTranscript.isEmpty {
                     Text(viewModel.voiceTranscript)
                         .font(.body)
@@ -283,42 +278,25 @@ struct ChatView: View {
                 }
             }
 
-            // Action Buttons
-            HStack(spacing: 40) {
-                // Cancel
-                Button {
-                    withAnimation(.spring(duration: 0.35)) {
-                        handleVoiceToggle()
-                    }
-                } label: {
-                    VStack(spacing: 8) {
-                        Image(systemName: "xmark")
-                            .font(.title2.weight(.semibold))
-                            .foregroundStyle(Color.pantriText.opacity(0.6))
-                            .frame(width: 64, height: 64)
-                            .contentShape(Rectangle())
-                        Text("Cancel")
-                            .font(.caption.weight(.medium))
-                            .foregroundStyle(Color.pantriText.opacity(0.6))
-                    }
+            HStack(spacing: 24) {
+                Button { exitVoiceMode(send: false) } label: {
+                    Text("Cancel")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.pantriText.opacity(0.5))
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
                 }
 
-                // Send
-                Button {
-                    let text = viewModel.voiceTranscript
-                    speech.stopListening()
-                    Task { await viewModel.sendVoiceMessage(text, context: modelContext) }
-                } label: {
-                    VStack(spacing: 8) {
-                        Image(systemName: "arrow.up")
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(viewModel.voiceTranscript.isEmpty ? Color.pantriGreen.opacity(0.4) : Color.pantriOrangeAccent)
-                            .frame(width: 64, height: 64)
-                            .contentShape(Rectangle())
-                        Text("Ask")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(viewModel.voiceTranscript.isEmpty ? Color.pantriGreen.opacity(0.4) : Color.pantriOrangeAccent)
-                    }
+                Button { exitVoiceMode(send: true) } label: {
+                    Text("Send")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(
+                            viewModel.voiceTranscript.isEmpty
+                                ? Color.pantriGreen.opacity(0.3)
+                                : Color.pantriGreen
+                        )
+                        .padding(.horizontal, 24)
+                        .padding(.vertical, 12)
                 }
                 .disabled(viewModel.voiceTranscript.isEmpty || viewModel.isLoading)
             }
@@ -333,20 +311,26 @@ struct ChatView: View {
     private var emptyState: some View {
         VStack(spacing: 16) {
             Spacer(minLength: 48)
-            ZStack {
-                Circle()
-                    .fill(Color.pantriGreenLight)
-                    .frame(width: 80, height: 80)
-                Image(systemName: "waveform.badge.mic")
-                    .font(.system(size: 32))
-                    .foregroundStyle(Color.pantriGreen)
+
+            Button {
+                enterVoiceMode()
+            } label: {
+                ZStack {
+                    Circle()
+                        .fill(Color.pantriGreenLight)
+                        .frame(width: 80, height: 80)
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 30))
+                        .foregroundStyle(Color.pantriGreen)
+                }
             }
+
             VStack(spacing: 6) {
                 Text("Ask about your pantry")
                     .font(.title3.weight(.semibold))
                     .foregroundStyle(Color.pantriText)
 
-                Text("Try: \"What am I running low on?\"\nor tap Voice to speak.")
+                Text("Tap the mic to speak, or type below.")
                     .font(.subheadline)
                     .foregroundStyle(Color.pantriText.opacity(0.55))
                     .multilineTextAlignment(.center)
@@ -388,7 +372,7 @@ struct SuggestionChip: View {
             HStack(spacing: 6) {
                 Image(systemName: "arrow.right")
                     .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.pantriOrangeAccent)
+                    .foregroundStyle(Color.pantriGreen)
                 Text(label)
                     .font(.subheadline)
                     .foregroundStyle(Color.pantriText)
@@ -410,19 +394,70 @@ struct ChatBubble: View {
         HStack(alignment: .bottom, spacing: 8) {
             if isUser { Spacer(minLength: 50) } else { botAvatar }
 
-            Text(message.content)
-                .padding(.horizontal, 14)
-                .padding(.vertical, 10)
-                .background(
-                    isUser
-                        ? AnyShapeStyle(Color.pantriOrangeAccent)
-                        : AnyShapeStyle(Color.white.opacity(0.85))
-                )
-                .foregroundStyle(isUser ? .white : Color.pantriText)
-                .clipShape(RoundedRectangle(cornerRadius: 18))
-                .shadow(color: isUser ? Color.pantriOrangeAccent.opacity(0.20) : Color.black.opacity(0.05), radius: 4, y: 2)
+            VStack(alignment: isUser ? .trailing : .leading, spacing: 8) {
+                Text(message.content)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 10)
+                    .background(
+                        isUser
+                            ? AnyShapeStyle(Color.pantriGreen)
+                            : AnyShapeStyle(Color.pantriSurface)
+                    )
+                    .foregroundStyle(isUser ? .white : Color.pantriText)
+                    .clipShape(RoundedRectangle(cornerRadius: 18))
+                    .shadow(color: Color.black.opacity(0.06), radius: 4, y: 2)
+
+                if !isUser && !message.actions.isEmpty {
+                    VStack(alignment: .leading, spacing: 6) {
+                        ForEach(uniqueActions.indices, id: \.self) { i in
+                            chatActionButton(uniqueActions[i])
+                        }
+                    }
+                }
+            }
 
             if !isUser { Spacer(minLength: 50) } else { userAvatar }
+        }
+    }
+
+    private var uniqueActions: [ChatMessage.ChatAction] {
+        var seen = Set<String>()
+        return message.actions.filter {
+            let key: String
+            switch $0 {
+            case .goToHome: key = "home"
+            case .goToShoppingList: key = "list"
+            }
+            return seen.insert(key).inserted
+        }
+    }
+
+    private func chatActionButton(_ action: ChatMessage.ChatAction) -> some View {
+        Button {
+            switch action {
+            case .goToHome:
+                NotificationCenter.default.post(
+                    name: .pantriSwitchToTab,
+                    object: nil,
+                    userInfo: ["tab": 0]
+                )
+            case .goToShoppingList:
+                NotificationCenter.default.post(name: .pantriOpenShoppingList, object: nil)
+            }
+        } label: {
+            HStack(spacing: 6) {
+                Image(systemName: action == .goToHome ? "house.fill" : "cart.fill")
+                    .font(.caption2.weight(.bold))
+                Text(action == .goToHome ? "View Dashboard" : "Shopping List")
+                    .font(.caption.weight(.semibold))
+                    .lineLimit(1)
+            }
+            .fixedSize()
+            .foregroundStyle(Color.pantriGreen)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .background(Color.pantriGreenLight)
+            .clipShape(Capsule())
         }
     }
 
@@ -440,11 +475,11 @@ struct ChatBubble: View {
     private var userAvatar: some View {
         ZStack {
             Circle()
-                .fill(Color.pantriOrange)
+                .fill(Color.pantriGreenLight)
                 .frame(width: 28, height: 28)
             Image(systemName: "person.fill")
                 .font(.caption)
-                .foregroundStyle(Color.pantriOrangeAccent)
+                .foregroundStyle(Color.pantriGreen)
         }
     }
 }
@@ -481,7 +516,7 @@ struct TypingIndicator: View {
             }
             .padding(.horizontal, 16)
             .padding(.vertical, 12)
-            .background(Color.white.opacity(0.85))
+            .background(Color.pantriSurface)
             .clipShape(RoundedRectangle(cornerRadius: 18))
             .onAppear { animate = true }
 

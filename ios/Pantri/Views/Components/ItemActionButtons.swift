@@ -17,23 +17,14 @@ struct ItemActionButton: View {
                 .fontWeight(.medium)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 8)
-                .background(backgroundColor)
                 .foregroundStyle(foregroundColor)
-                .clipShape(Capsule())
-        }
-    }
-
-    private var backgroundColor: Color {
-        switch style {
-        case .primary: return .blue
-        case .secondary: return Color(.systemGray6)
         }
     }
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: return .white
-        case .secondary: return .primary
+        case .primary: return Color.pantriGreen
+        case .secondary: return Color.pantriText.opacity(0.5)
         }
     }
 }
@@ -47,9 +38,7 @@ struct StatusBadge: View {
             .fontWeight(.semibold)
             .padding(.horizontal, 8)
             .padding(.vertical, 4)
-            .background(backgroundColor.opacity(0.15))
             .foregroundStyle(backgroundColor)
-            .clipShape(Capsule())
     }
 
     private var label: String {

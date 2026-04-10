@@ -22,10 +22,6 @@ struct AnimatedGlobeView: View {
                 Circle()
                     .fill(.white.opacity(0.05))
                     .frame(width: 190, height: 190)
-                    .overlay(
-                        Circle()
-                            .stroke(.white.opacity(0.2), lineWidth: 1)
-                    )
 
                 // Liquid Core
                 ZStack {

@@ -42,7 +42,7 @@ struct ItemDetailView: View {
                     .padding()
             }
         }
-        .background(Color(.systemGray6))
+        .background(Color.pantriBackground)
         .navigationTitle(viewModel.item?.name ?? "Item")
         .navigationBarTitleDisplayMode(.large)
         .onAppear {
@@ -58,7 +58,7 @@ struct ItemDetailView: View {
         HStack(spacing: 16) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(.systemGray6))
+                    .fill(Color.pantriGreenLight)
                     .frame(width: 80, height: 80)
                 Text(prediction.emoji)
                     .font(.largeTitle)
@@ -97,7 +97,7 @@ struct ItemDetailView: View {
             }
         }
         .padding()
-        .background(.white)
+        .background(Color.pantriSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
@@ -139,7 +139,7 @@ struct ItemDetailView: View {
             }
         }
         .padding()
-        .background(.white)
+        .background(Color.pantriSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
@@ -154,7 +154,7 @@ struct ItemDetailView: View {
             LabeledContent("Perishable", value: profile.isPerishable ? "Yes" : "No")
         }
         .padding()
-        .background(.white)
+        .background(Color.pantriSurface)
         .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 

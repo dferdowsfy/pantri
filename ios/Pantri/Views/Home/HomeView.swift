@@ -6,52 +6,159 @@ struct HomeView: View {
     @Environment(AppState.self) private var appState
     @State private var viewModel = HomeViewModel()
     @Binding var showInventory: Bool
+    @State private var showShoppingList = false
+    @State private var selectedItemId: UUID?
+    @State private var boughtIds: Set<UUID> = []
+    @State private var removingIds: Set<UUID> = []
 
     var body: some View {
-        ZStack {
-            // ── Nature background ──────────────────────────────────
-            Color.pantriOrange.ignoresSafeArea()
-            backgroundShapes
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+        NavigationStack {
+            List {
+                // ── Header ─────────────────────────────────────────
+                Section {
                     headerSection
-                        .padding(.top, 12)
+                }
+                .listRowBackground(Color.clear)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 4, trailing: 20))
 
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .tint(Color.pantriGreen)
-                            .frame(maxWidth: .infinity, minHeight: 200)
-                    } else if let data = viewModel.homeData {
-                        if data.totalTrackedItems == 0 {
-                            emptyInventoryState
-                        } else {
-                            if !data.needSoon.isEmpty {
-                                needSoonSection(items: data.needSoon)
+                if viewModel.isLoading {
+                    Section {
+                        HStack {
+                            Spacer()
+                            ProgressView()
+                                .tint(Color.pantriGreen)
+                            Spacer()
+                        }
+                        .frame(minHeight: 200)
+                    }
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+
+                } else if let data = viewModel.homeData {
+                    if data.totalTrackedItems == 0 {
+                        Section { emptyInventoryState }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                    } else {
+                        // ── Shopping List Summary Card ──────────────
+                        if !viewModel.whatToBuyItems.isEmpty {
+                            Section {
+                                shoppingListCard(count: viewModel.whatToBuyItems.count)
                             }
-                            if !data.thisWeek.isEmpty {
-                                thisWeekSection(items: data.thisWeek)
-                            }
-                            if !data.youreGood.isEmpty {
-                                YoureGoodBanner(itemCount: data.youreGood.count)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 4, leading: 20, bottom: 4, trailing: 20))
+                        }
+
+                        // ── What to Buy ────────────────────────────
+                        if !viewModel.whatToBuyItems.isEmpty {
+                            Section {
+                                ForEach(viewModel.whatToBuyItems) { item in
+                                    if !removingIds.contains(item.id) {
+                                        NeedSoonCard(item: item, isBought: boughtIds.contains(item.id))
+                                            .contentShape(Rectangle())
+                                            .onTapGesture { selectedItemId = item.id }
+                                            .listRowBackground(
+                                                Color.pantriSurface
+                                                    .overlay(alignment: .bottom) {
+                                                        Rectangle()
+                                                            .fill(Color.pantriCardBorder)
+                                                            .frame(height: 0.5)
+                                                    }
+                                            )
+                                            .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                                                Button {
+                                                    animateBought(itemId: item.id)
+                                                } label: {
+                                                    Label("Bought", systemImage: "checkmark.circle.fill")
+                                                }
+                                                .tint(Color.pantriGreen)
+
+                                                Button {
+                                                    animateSnooze(itemId: item.id)
+                                                } label: {
+                                                    Label("Snooze", systemImage: "clock")
+                                                }
+                                                .tint(Color(.systemGray))
+
+                                                Button {
+                                                    showShoppingList = true
+                                                } label: {
+                                                    Label("List", systemImage: "cart.badge.plus")
+                                                }
+                                                .tint(Color(.systemIndigo))
+                                            }
+                                            .contextMenu {
+                                                Button {
+                                                    animateBought(itemId: item.id)
+                                                } label: {
+                                                    Label("Mark as Bought", systemImage: "checkmark.circle")
+                                                }
+                                                Button {
+                                                    animateSnooze(itemId: item.id)
+                                                } label: {
+                                                    Label("Snooze 3 Days", systemImage: "clock")
+                                                }
+                                                Button {
+                                                    showShoppingList = true
+                                                } label: {
+                                                    Label("Add to Shopping List", systemImage: "cart.badge.plus")
+                                                }
+                                                Divider()
+                                                Button {
+                                                    selectedItemId = item.id
+                                                } label: {
+                                                    Label("View Details", systemImage: "info.circle")
+                                                }
+                                            }
+                                            .transition(.asymmetric(
+                                                insertion: .opacity,
+                                                removal: .move(edge: .trailing).combined(with: .opacity)
+                                            ))
+                                    }
+                                }
+                            } header: {
+                                whatToBuyHeader
                             }
                         }
-                    } else {
-                        emptyInventoryState
-                    }
 
-                    if let error = viewModel.errorMessage {
-                        Text(error)
-                            .foregroundStyle(.red)
-                            .font(.caption)
-                            .padding()
+                        // ── You're Good Banner ─────────────────────
+                        if !data.youreGood.isEmpty {
+                            Section {
+                                YoureGoodBanner(itemCount: data.youreGood.count)
+                            }
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .listRowInsets(EdgeInsets(top: 8, leading: 20, bottom: 0, trailing: 20))
+                        }
                     }
+                } else {
+                    Section { emptyInventoryState }
+                        .listRowBackground(Color.clear)
+                        .listRowSeparator(.hidden)
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 110) // clear floating nav
+
+                if let error = viewModel.errorMessage {
+                    Section {
+                        Text(error)
+                            .foregroundStyle(Color.urgencyRed)
+                            .font(.caption)
+                    }
+                    .listRowBackground(Color.clear)
+                }
+            }
+            .listStyle(.insetGrouped)
+            .scrollContentBackground(.hidden)
+            .background(Color.pantriBackground.ignoresSafeArea())
+            .safeAreaInset(edge: .bottom) {
+                Color.clear.frame(height: 90)
             }
             .refreshable {
                 viewModel.refresh(context: modelContext)
+            }
+            .navigationDestination(item: $selectedItemId) { itemId in
+                ItemDetailView(itemId: itemId)
             }
         }
         .onAppear {
@@ -62,62 +169,90 @@ struct HomeView: View {
                 let _ = await service.requestPermission()
             }
         }
-    }
-
-    // MARK: - Background shapes
-
-    private var backgroundShapes: some View {
-        GeometryReader { geo in
-            ZStack {
-                Circle()
-                    .fill(Color.pantriGreen.opacity(0.12))
-                    .frame(width: geo.size.width * 0.7)
-                    .offset(x: geo.size.width * 0.5, y: -60)
-
-                Circle()
-                    .fill(Color.pantriGreen.opacity(0.08))
-                    .frame(width: geo.size.width * 0.5)
-                    .offset(x: -geo.size.width * 0.25, y: geo.size.height * 0.6)
-
-                Ellipse()
-                    .fill(Color.pantriOrangeAccent.opacity(0.07))
-                    .frame(width: geo.size.width * 0.6, height: 200)
-                    .offset(x: geo.size.width * 0.1, y: geo.size.height * 0.35)
-            }
+        .onChange(of: showInventory) { _, _ in
+            viewModel.refresh(context: modelContext)
         }
-        .ignoresSafeArea()
-        .allowsHitTesting(false)
+        .onReceive(NotificationCenter.default.publisher(for: .pantriInventoryChanged)) { _ in
+            viewModel.refresh(context: modelContext)
+        }
+        .sheet(isPresented: $showShoppingList) {
+            ShoppingListSheet(items: viewModel.whatToBuyItems)
+        }
     }
 
     // MARK: - Header
 
     private var headerSection: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "leaf.fill")
-                        .foregroundStyle(Color.pantriGreen)
-                    Text("Pantri")
-                        .font(.headline.weight(.bold))
-                        .foregroundStyle(Color.pantriText)
-                }
-                Spacer()
-                Circle()
-                    .fill(Color.pantriGreenLight)
-                    .frame(width: 40, height: 40)
-                    .overlay(
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(Color.pantriGreen)
-                    )
-            }
-            .padding(.bottom, 8)
-
+        VStack(alignment: .leading, spacing: 6) {
             Text(viewModel.headlineText)
-                .font(.title.weight(.bold))
+                .font(.title.weight(.semibold))
                 .foregroundStyle(Color.pantriText)
 
             Text(viewModel.subtitleText)
-                .foregroundStyle(Color.pantriText.opacity(0.6))
+                .font(.body)
+                .foregroundStyle(Color.pantriSecondaryText)
+
+            Text("Pantri learns from receipts and habits.")
+                .font(.caption)
+                .foregroundStyle(Color.pantriTertiaryText)
+                .padding(.top, 2)
+        }
+        .padding(.vertical, 8)
+    }
+
+    // MARK: - Shopping List Card
+
+    private func shoppingListCard(count: Int) -> some View {
+        Button { showShoppingList = true } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "list.clipboard")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(Color.pantriGreen)
+                    .frame(width: 34, height: 34)
+                    .background(Circle().fill(Color.pantriGreenLight))
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Shopping List")
+                        .font(.subheadline.weight(.medium))
+                        .foregroundStyle(Color.pantriText)
+                    Text("\(count) item\(count == 1 ? "" : "s")")
+                        .font(.caption)
+                        .foregroundStyle(Color.pantriSecondaryText)
+                }
+
+                Spacer()
+
+                Text("Review")
+                    .font(.subheadline.weight(.medium))
+                    .foregroundStyle(Color.pantriGreen)
+            }
+            .padding(14)
+            .background(
+                RoundedRectangle(cornerRadius: 14)
+                    .fill(Color.pantriSurface)
+                    .shadow(color: .black.opacity(0.04), radius: 8, y: 2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 14)
+                    .strokeBorder(Color.pantriCardBorder, lineWidth: 1)
+            )
+        }
+    }
+
+    // MARK: - What to Buy Header
+
+    private var whatToBuyHeader: some View {
+        HStack {
+            Text("What to buy")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(Color.pantriSecondaryText)
+                .textCase(nil)
+            Spacer()
+            Button { showInventory = true } label: {
+                Text("View all")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.pantriTertiaryText)
+            }
         }
     }
 
@@ -129,72 +264,59 @@ struct HomeView: View {
             ZStack {
                 Circle()
                     .fill(Color.pantriGreenLight)
-                    .frame(width: 90, height: 90)
+                    .frame(width: 80, height: 80)
                 Image(systemName: "basket")
-                    .font(.system(size: 38))
+                    .font(.system(size: 32))
                     .foregroundStyle(Color.pantriGreen)
             }
-            VStack(spacing: 8) {
+            VStack(spacing: 6) {
                 Text("Your pantry is empty")
-                    .font(.title3.weight(.semibold))
+                    .font(.title3.weight(.medium))
                     .foregroundStyle(Color.pantriText)
-                Text("Tap + to add your first items and Pantri will start predicting when you'll need them.")
+                Text("Tap + to scan a receipt or add items.")
                     .font(.subheadline)
-                    .foregroundStyle(Color.pantriText.opacity(0.6))
+                    .foregroundStyle(Color.pantriSecondaryText)
                     .multilineTextAlignment(.center)
-                    .padding(.horizontal, 24)
             }
             Spacer(minLength: 40)
         }
         .frame(maxWidth: .infinity)
     }
 
-    // MARK: - Sections
+    // MARK: - Swipe Action Animations
 
-    private func needSoonSection(items: [ItemSummary]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("You might need soon")
-                    .font(.title3.weight(.semibold))
-                    .foregroundStyle(Color.pantriText)
-                Spacer()
-                Button {
-                    showInventory = true
-                } label: {
-                    Text("View all")
-                        .foregroundStyle(Color.pantriOrangeAccent)
-                        .font(.subheadline.weight(.medium))
-                }
+    private func animateBought(itemId: UUID) {
+        // 1. Strikethrough + checkmark state
+        withAnimation(.easeInOut(duration: 0.3)) {
+            boughtIds.insert(itemId)
+        }
+        let impact = UINotificationFeedbackGenerator()
+        impact.notificationOccurred(.success)
+
+        // 2. After a beat, fly away and record
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            withAnimation(.easeIn(duration: 0.35)) {
+                removingIds.insert(itemId)
             }
-
-            ForEach(items) { item in
-                NeedSoonCard(
-                    item: item,
-                    onBought: { viewModel.handleBought(itemId: item.id, context: modelContext) },
-                    onNotYet: { viewModel.handleNotYet(itemId: item.id, context: modelContext) }
-                )
+            // 3. Record in data layer after animation
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                viewModel.handleBought(itemId: itemId, context: modelContext)
+                boughtIds.remove(itemId)
+                removingIds.remove(itemId)
             }
         }
     }
 
-    private func thisWeekSection(items: [ItemSummary]) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("This week")
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(Color.pantriText)
+    private func animateSnooze(itemId: UUID) {
+        let impact = UIImpactFeedbackGenerator(style: .medium)
+        impact.impactOccurred()
 
-            VStack(spacing: 0) {
-                ForEach(items) { item in
-                    ThisWeekRow(item: item)
-                    if item.id != items.last?.id {
-                        Divider()
-                            .padding(.horizontal)
-                    }
-                }
-            }
-            .background(Color.white.opacity(0.75))
-            .clipShape(RoundedRectangle(cornerRadius: 16))
-            .shadow(color: Color.pantriGreen.opacity(0.08), radius: 8, y: 2)
+        withAnimation(.easeIn(duration: 0.35)) {
+            removingIds.insert(itemId)
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+            viewModel.handleSnooze(itemId: itemId, context: modelContext)
+            removingIds.remove(itemId)
         }
     }
 }

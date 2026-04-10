@@ -10,13 +10,13 @@ struct InventoryListView: View {
     var body: some View {
         NavigationStack {
             ZStack {
-                Color.pantriOrange.ignoresSafeArea()
+                Color.pantriBackground.ignoresSafeArea()
 
                 if items.isEmpty {
                     VStack(spacing: 12) {
                         Image(systemName: "basket")
                             .font(.system(size: 48))
-                            .foregroundStyle(Color.pantriGreen.opacity(0.5))
+                            .foregroundStyle(Color.pantriGreen.opacity(0.35))
                         Text("No items tracked yet")
                             .font(.headline)
                             .foregroundStyle(Color.pantriText)
@@ -38,11 +38,10 @@ struct InventoryListView: View {
                                         .foregroundStyle(Color.pantriText)
                                     Text(item.category.displayName)
                                         .font(.caption)
-                                        .foregroundStyle(Color.pantriText.opacity(0.5))
+                                        .foregroundStyle(Color.pantriSecondaryText)
                                 }
                             }
                             .padding(.vertical, 4)
-                            .listRowBackground(Color.white.opacity(0.7))
                         }
                     }
                     .listStyle(.insetGrouped)

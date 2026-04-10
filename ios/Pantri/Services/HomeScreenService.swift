@@ -25,12 +25,26 @@ struct ItemSummary: Identifiable {
     let explanation: String
     let confidenceScore: Double
 
-    /// Short subtitle for compact list rows (e.g. "Due in 5 days")
+    /// Short subtitle for compact list rows (e.g. "In ~2 days")
     var subtitle: String {
         guard let days = daysUntilNeeded else { return "No prediction yet" }
-        if days <= 0 { return "Likely needed now" }
-        if days == 1 { return "Likely needed tomorrow" }
-        return "Due in about \(days) days"
+        if days <= 0 { return "Needed now" }
+        if days == 1 { return "In ~1 day" }
+        return "In ~\(days) days"
+    }
+
+    /// Urgency level based on days until needed
+    enum UrgencyLevel {
+        case urgent   // <1 day
+        case soon     // 1–3 days
+        case stable   // 3+ days
+    }
+
+    var urgency: UrgencyLevel {
+        guard let days = daysUntilNeeded else { return .stable }
+        if days < 1 { return .urgent }
+        if days <= 3 { return .soon }
+        return .stable
     }
 }
 

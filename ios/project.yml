@@ -24,7 +24,11 @@ targets:
     resources:
       - path: Pantri/Resources/consumption_defaults.json
       - path: Pantri/Resources/Assets.xcassets
-      - path: ../.env
+      - path: Pantri/Resources/Env.txt
+      - path: Pantri/GoogleService-Info.plist
+    dependencies:
+      - package: firebase-ios-sdk
+        product: FirebaseAuth
     settings:
       base:
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
@@ -68,3 +72,8 @@ schemes:
       config: Debug
       targets:
         - PantriTests
+
+packages:
+  firebase-ios-sdk:
+    url: https://github.com/firebase/firebase-ios-sdk
+    exactVersion: "10.25.0"

@@ -21,6 +21,15 @@ final class AddItemViewModel {
         !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
+    func autoSetPerishable(for category: ItemCategory) {
+        switch category {
+        case .dairy, .produce, .bakery, .meatSeafood:
+            isPerishable = true
+        case .pantry, .household, .frozen, .beverages, .other:
+            isPerishable = false
+        }
+    }
+
     @MainActor
     func save(context: ModelContext) {
         guard isValid else {
